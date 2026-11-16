@@ -1,0 +1,36 @@
+# Exemple complet : servez-vous-en comme modèle pour les autres policies.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Interdire le tag latest
+    policies.kyverno.io/description: >-
+      Le tag latest est mutable : on ne sait pas quelle version tourne
+      et un rollback est impossible. Toute image doit avoir un tag explicite.
+spec:
+  validationFailureAction: Audit # passer à Enforce après avoir observé les rapports
+  background: true
+  rules:
+    - name: require-explicit-tag
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: "Utilisez un tag d'image explicite (pas :latest, pas de tag absent)."
+        pattern:
+          spec:
+            containers:
+              - image: "*:*"
+    - name: forbid-latest
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: "Le tag :latest est interdit."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"
